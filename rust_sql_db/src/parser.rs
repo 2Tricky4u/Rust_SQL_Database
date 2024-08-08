@@ -2,10 +2,10 @@ use crate::tokenizer::{Token, Tokenizer};
 
 #[derive(Debug)]
 pub enum Query {
-    Select { columns: Vec<String>, table: String, condition: Option<String>},
+    Select { columns: Vec<String>, table: String, condition: Option<String> },
     Insert { table: String, columns: Vec<String>, values: Vec<String> },
-    Update { table: String, assignments: Vec<(String, String)>, condition: Option<String>},
-    Delete {table: String, condition: Option<String>},
+    Update { table: String, assignments: Vec<(String, String)>, condition: Option<String> },
+    Delete { table: String, condition: Option<String> },
 }
 
 pub struct Parser {
@@ -15,7 +15,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser{ tokens, position: 0}
+        Parser { tokens, position: 0 }
     }
 
     pub fn parse(&mut self) -> Result<Query, String> {
@@ -24,66 +24,63 @@ impl Parser {
             Some(Token::Insert) => self.parse_insert(),
             Some(Token::Update) => self.parse_update(),
             Some(Token::Delete) => self.parse_delete(),
-            _ => Err("Invalid SQL command or unsupported one!".to_string()),
+            _ => Err("Invalid SQL command".to_string()),
         }
     }
 
     fn parse_select(&mut self) -> Result<Query, String> {
-        self.position += 1; // Skip "SELECT"
+        self.position += 1; // Skip 'SELECT'
         let columns = self.parse_columns()?;
-        self.position += 1; //Skip "From"
+        self.position += 1; // Skip 'FROM'
         let table = self.parse_identifier()?;
-        let condition = if self.position < self.tokens.len()
-                            && self.tokens[self.position] == Token::Where {
-            self.position += 1; //Skip "WHERE"
+        let condition = if self.position < self.tokens.len() && self.tokens[self.position] == Token::Where {
+            self.position += 1; // Skip 'WHERE'
             Some(self.parse_identifier()?)
         } else {
             None
         };
-        Ok(Query::Select {columns, table, condition})
+        Ok(Query::Select { columns, table, condition })
     }
 
     fn parse_insert(&mut self) -> Result<Query, String> {
-        self.position += 1; //Skip "INSERT"
-        self.position += 1; //Skip "INTO"
+        self.position += 1; // Skip 'INSERT'
+        self.position += 1; // Skip 'INTO'
         let table = self.parse_identifier()?;
-        self.position += 1; //Skip "("
+        self.position += 1; // Skip '('
         let columns = self.parse_columns()?;
-        self.position += 1; //Skip ")"
-        self.position += 1; //Skip "VALUES"
-        self.position += 1; //Skip "("
+        self.position += 1; // Skip ')'
+        self.position += 1; // Skip 'VALUES'
+        self.position += 1; // Skip '('
         let values = self.parse_values()?;
-        self.position += 1; //Skip ")"
-        Ok(Query::Insert { table, columns, values})
+        self.position += 1; // Skip ')'
+        Ok(Query::Insert { table, columns, values })
     }
 
     fn parse_update(&mut self) -> Result<Query, String> {
-        self.position += 1; //Skip "UPDATE"
+        self.position += 1; // Skip 'UPDATE'
         let table = self.parse_identifier()?;
-        self.position += 1; //Skip "SET"
+        self.position += 1; // Skip 'SET'
         let assignments = self.parse_assignments()?;
-        let condition = if self.position < self.tokens.len()
-                            && self.tokens[self.position] == Token::Where {
-            self.position += 1; //Skip "WHERE"
+        let condition = if self.position < self.tokens.len() && self.tokens[self.position] == Token::Where {
+            self.position += 1; // Skip 'WHERE'
             Some(self.parse_identifier()?)
         } else {
             None
         };
-        Ok(Query::Update {table, assignments, condition})
+        Ok(Query::Update { table, assignments, condition })
     }
 
     fn parse_delete(&mut self) -> Result<Query, String> {
-        self.position += 1; //Skipp "DELETE"
-        self.position += 1; //Skip "FROM"
+        self.position += 1; // Skip 'DELETE'
+        self.position += 1; // Skip 'FROM'
         let table = self.parse_identifier()?;
-        let condition = if self.position < self.tokens.len()
-                            && self.tokens[self.position] == Token::Where {
-            self.position += 1; //Skip "WHERE"
+        let condition = if self.position < self.tokens.len() && self.tokens[self.position] == Token::Where {
+            self.position += 1; // Skip 'WHERE'
             Some(self.parse_identifier()?)
         } else {
             None
         };
-        Ok(Query::Delete { table, condition})
+        Ok(Query::Delete { table, condition })
     }
 
     fn parse_columns(&mut self) -> Result<Vec<String>, String> {
@@ -96,9 +93,9 @@ impl Parser {
             }
             self.position += 1;
             if self.position < self.tokens.len() && self.tokens[self.position] == Token::Comma {
-                self.position += 1; //Skip ","
+                self.position += 1; // Skip ','
             } else {
-                break
+                break;
             }
         }
         Ok(columns)
@@ -114,9 +111,9 @@ impl Parser {
             }
             self.position += 1;
             if self.position < self.tokens.len() && self.tokens[self.position] == Token::Comma {
-                self.position += 1; //Skip ","
+                self.position += 1; // Skip ','
             } else {
-                break
+                break;
             }
         }
         Ok(values)
@@ -126,13 +123,19 @@ impl Parser {
         let mut assignments = Vec::new();
         while self.position < self.tokens.len() {
             if let Token::Identifier(ref col) = self.tokens[self.position] {
-                self.position += 1; //Skip column name
-                self.position += 1; //Skip "="
+                self.position += 1; // Skip column name
+                self.position += 1; // Skip '='
                 if let Token::Literal(ref val) = self.tokens[self.position] {
                     assignments.push((col.clone(), val.clone()));
                 } else {
                     return Err("Expected literal value".to_string());
                 }
+            } else {
+                break;
+            }
+            self.position += 1;
+            if self.position < self.tokens.len() && self.tokens[self.position] == Token::Comma {
+                self.position += 1; // Skip ','
             } else {
                 break;
             }

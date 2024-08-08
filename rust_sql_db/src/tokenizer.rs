@@ -1,7 +1,6 @@
 use regex::Regex;
 
 #[derive(Debug, PartialEq)]
-
 pub enum Token {
     Select,
     Insert,
@@ -25,8 +24,8 @@ pub struct Tokenizer {
 }
 
 impl Tokenizer {
-    pub fn new(input: String) -> Self{
-        Tokenizer{
+    pub fn new(input: String) -> Self {
+        Tokenizer {
             input,
             position: 0,
         }
@@ -36,7 +35,24 @@ impl Tokenizer {
         let re = Regex::new(r"(?i)(select|insert|update|delete|from|where|into|values|set)|([a-zA-Z_][a-zA-Z0-9_]*)|(\d+)|([,;=])").unwrap();
         let mut tokens = Vec::new();
 
-        for cap in re.captures_iter(&self.input){
+        for cap in re.captures_iter(&self.input) {
+            if cfg!(debug_assertions) {
+                if let Some(keyword) = cap.get(1) {
+                    println!("Cap 1: {}", keyword.as_str());
+                }
+                if let Some(identifier) = cap.get(2) {
+                    println!("Cap 2: {}", identifier.as_str());
+                }
+
+                if let Some(literal) = cap.get(3) {
+                    println!("Cap 3: {}", literal.as_str());
+                }
+
+                if let Some(symbol) = cap.get(4) {
+                    println!("Cap 4: {}", symbol.as_str());
+                }
+            }
+
             if let Some(keyword) = cap.get(1) {
                 match keyword.as_str().to_lowercase().as_str() {
                     "select" => tokens.push(Token::Select),
@@ -50,11 +66,11 @@ impl Tokenizer {
                     "set" => tokens.push(Token::Set),
                     _ => {},
                 }
-            } else if let Some(identifier) = cap.get(2){
+            } else if let Some(identifier) = cap.get(2) {
                 tokens.push(Token::Identifier(identifier.as_str().to_string()));
             } else if let Some(literal) = cap.get(3) {
                 tokens.push(Token::Literal(literal.as_str().to_string()));
-            } else if let Some(symbol) = cap.get(4){
+            } else if let Some(symbol) = cap.get(4) {
                 match symbol.as_str() {
                     "," => tokens.push(Token::Comma),
                     ";" => tokens.push(Token::SemiColon),
